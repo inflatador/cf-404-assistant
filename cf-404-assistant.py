@@ -37,23 +37,23 @@ def find_endpoints(auth_token, headers, region, desired_service="cloudServersOpe
 def getset_keyring_credentials(username=None, password=None):
     #Method to retrieve credentials from keyring.
     print (sys.version_info.major)
-    username = keyring.get_password("ioni", "username")
+    username = keyring.get_password("raxcloud", "username")
     if username is None:
         if sys.version_info.major < 3:
             username = raw_input("Enter Rackspace Username: ")
-            keyring.set_password("ioni", 'username', username)
-            print ("Username value saved in keychain as ioni username.")
+            keyring.set_password("raxcloud", 'username', username)
+            print ("Username value saved in keychain as raxcloud username.")
         elif sys.version_info.major >= 3:
             username = input("Enter Rackspace Username: ")
-            keyring.set_password("ioni", 'username', username)
-            print ("Username value saved in keychain as ioni username.")
+            keyring.set_password("raxcloud", 'username', username)
+            print ("Username value saved in keychain as raxcloud username.")
     else:
         print ("Authenticating to Rackspace cloud as %s" % username)
-    password = keyring.get_password("ioni", "password")
+    password = keyring.get_password("raxcloud", "password")
     if password is None:
         password = getpass("Enter Rackspace API key:")
-        keyring.set_password("ioni", 'password' , password)
-        print ("API key value saved in keychain as ioni password.")
+        keyring.set_password("raxcloud", 'password' , password)
+        print ("API key value saved in keychain as raxcloud password.")
     return username, password
 # Request to authenticate using password
 def get_auth_token(username,password):
@@ -96,6 +96,8 @@ def get_auth_token(username,password):
 def get_cdn_enabled_containers(cfcdn_endpoint, headers, region):
     print ("Checking for CDN-enabled Cloud Files in {}...".format(region))
     cdn_enabled_query = requests.get(url=cfcdn_endpoint, headers=headers)
+    if cdn_enabled_query.raise_for_status() == None:
+        print ("Success!")
     cdn_enabled_containers = cdn_enabled_query.json()
     num_cec = len(cdn_enabled_containers)
     print ("Found {} CDN-enabled containers in {}!".format(num_cec, region))
@@ -105,29 +107,21 @@ def toggle_container(cfcdn_endpoint, cdn_enabled_containers, headers, region):
     # Used for disabling CDN
     headers["X-CDN-Enabled"] = "False"
     # FIXME: only for 191002-ord-0000708
-    cecs_already_toggled = [ "ion", "LiveBall_Citizensbank",
-    "LiveBall_Euromoneyplc", "LiveBall_Fdb", "LiveBall_Servicemaster" ]
-
     for cec in cdn_enabled_containers:
         cec_name = cec["name"]
         cec_url = "{}/{}".format(cfcdn_endpoint, cec_name )
-        if (cec["cdn_enabled"]) and (cec["name"]) not in cecs_already_toggled:
+        if (cec["cdn_enabled"]):
             print ("Container {} is CDN-enabled, toggling...".format(cec_name))
             cdn_disable_req = requests.put(url=cec_url, headers=headers)
-            cdn_disable_req.raise_for_status()
-            if cdn_disable_req.status_code == 204:
+            if cdn_disable_req.raise_for_status() == None:
                 print (f"Successfully disabled CDN on container {cec_name}!"
-                       f"Sleeping 5 seconds, then re-enabling!")
+                       f" Sleeping 5 seconds, then re-enabling!")
                 time.sleep(5)
                 print ("Done sleeping...enabling CDN on container {}!".format(cec_name))
                 headers["X-CDN-Enabled"] = "True"
                 cdn_enable_req = requests.put(url=cec_url, headers=headers)
-                cdn_enable_req.raise_for_status()
-                if cdn_enable_req.status_code == 204:
+                if cdn_enable_req.raise_for_status() == None:
                     print (f"Successfully re-enabled CDN on container {cec_name}!")
-
-
-
 
 @plac.annotations(
     region=plac.Annotation("Rackspace Cloud region")
