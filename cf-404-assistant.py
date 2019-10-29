@@ -2,7 +2,7 @@
 # cf-404-assistant.py
 # given account and region:
 # lists all CF-enabled containers on account
-# optionally disables and enables
+# disables CDN, then re-enables
 # version: 0.0.1a
 # Copyright 2019 Brian King
 # License: Apache
@@ -106,17 +106,16 @@ def get_cdn_enabled_containers(cfcdn_endpoint, headers, region):
 def toggle_container(cfcdn_endpoint, cdn_enabled_containers, headers, region):
     # Used for disabling CDN
     headers["X-CDN-Enabled"] = "False"
-    # FIXME: only for 191002-ord-0000708
-    for cec in cdn_enabled_containers:
+    for indice, cec in enumerate(cdn_enabled_containers, start=1):
         cec_name = cec["name"]
-        cec_url = "{}/{}".format(cfcdn_endpoint, cec_name )
+        cec_url = "{}/{}".format(cfcdn_endpoint, cec_name)
         if (cec["cdn_enabled"]):
-            print ("Container {} is CDN-enabled, toggling...".format(cec_name))
+            print ("({}/{}) Container {} is CDN-enabled, toggling...".format(indice, len(cdn_enabled_containers), cec_name))
             cdn_disable_req = requests.put(url=cec_url, headers=headers)
             if cdn_disable_req.raise_for_status() == None:
                 print (f"Successfully disabled CDN on container {cec_name}!"
-                       f" Sleeping 5 seconds, then re-enabling!")
-                time.sleep(5)
+                       f" Sleeping 2 seconds, then re-enabling!")
+                time.sleep(2)
                 print ("Done sleeping...enabling CDN on container {}!".format(cec_name))
                 headers["X-CDN-Enabled"] = "True"
                 cdn_enable_req = requests.put(url=cec_url, headers=headers)
